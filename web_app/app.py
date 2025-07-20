@@ -11,7 +11,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Configuration
-SERIAL_PORT = 'COM23'  # Update to your Arduino COM port
+SERIAL_PORT = 'COM25'  # Update to your Arduino COM port
 BAUD_RATE = 9600
 SOFT_HARD_THRESHOLD = 350
 FRESH_ROTTEN_THRESHOLD = 750
