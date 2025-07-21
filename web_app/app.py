@@ -614,37 +614,40 @@ def receive_data_from_arduino():
     global test_data, data_collection_active, current_phase
 
     if not data_collection_active:
-        # If data collection is not active, acknowledge but discard data
         return jsonify({"message": "Data collection not active."}), 200
 
     try:
-        json_data = request.get_json() # Arduino is sending JSON
-        
-        # Validate the expected JSON structure
-        if not json_data or 'time' not in json_data or 'tx' not in json_data or 'rx' not in json_data:
-            print(f"Malformed JSON data received: {json_data}")
-            return jsonify({"message": "Malformed JSON data."}), 400
-        
-        # Validate 'rx' array
-        rx_values = json_data['rx']
-        if not isinstance(rx_values, list) or len(rx_values) != 7:
-            print(f"Invalid 'rx' array format or length: {rx_values}")
-            return jsonify({"message": "Invalid 'rx' array format or length (expected 7)."}), 400
+        json_data = request.get_json()  # Arduino sends a list of TX packets
 
-        # Append to all_data regardless of phase
-        parsed_data = [json_data['time'], json_data['tx']] + rx_values
-        test_data['all_data'].append(parsed_data)
-        
-        # Segregate data based on current_phase managed by run_test_manager
-        if current_phase == "UNTOUCH":
-            test_data['untouch_data'].append(parsed_data)
-        elif current_phase == "TOUCH":
-            test_data['touch_data'].append(parsed_data)
-        
-        return jsonify({"message": "Data received successfully."}), 200
+        # Ensure it's a list of TX packets
+        if not isinstance(json_data, list):
+            print(f"Expected list but got: {type(json_data).__name__}")
+            return jsonify({"message": "Expected a list of TX packets."}), 400
+
+        for packet in json_data:
+            if not all(k in packet for k in ('time', 'tx', 'rx')):
+                print(f"Malformed packet: {packet}")
+                continue  # skip bad packets but don’t crash
+
+            rx_values = packet['rx']
+            if not isinstance(rx_values, list) or len(rx_values) != 7:
+                print(f"Invalid 'rx' format in packet: {packet}")
+                continue
+
+            parsed_data = [packet['time'], packet['tx']] + rx_values
+            test_data['all_data'].append(parsed_data)
+
+            if current_phase == "UNTOUCH":
+                test_data['untouch_data'].append(parsed_data)
+            elif current_phase == "TOUCH":
+                test_data['touch_data'].append(parsed_data)
+
+        return jsonify({"message": "Batch data received successfully."}), 200
+
     except Exception as e:
-        print(f"Error receiving data: {e}")
-        return jsonify({"message": f"Error processing data: {str(e)}"}), 500
+        print(f"Error receiving batch data: {e}")
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
+
 
 def run_test_manager():
     global state, test_data, stop_requested, data_collection_active, test_start_time, current_phase
