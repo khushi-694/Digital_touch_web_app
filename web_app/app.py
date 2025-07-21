@@ -10,6 +10,11 @@ import io # Import io for in-memory plot serving
 
 app = Flask(__name__)
 
+collection_status = {
+    "active": False,
+    "duration": 0,
+    "start_time": None
+} 
 # Configuration
 SOFT_HARD_THRESHOLD = 350
 FRESH_ROTTEN_THRESHOLD = 750
@@ -582,6 +587,19 @@ def stop():
             test_data['labels'].append("Test Stopped by User")
         test_data['finished'] = True
     return jsonify({"message": "Stopping..."})
+  
+@app.route('/arduino_status')
+def arduino_status():
+    global data_collection_active, test_start_time, current_test_config
+
+    duration = int(current_test_config.get("duration", 0)) * 1000  # in ms
+    start_time_ms = int(test_start_time * 1000) if test_start_time else None
+
+    return jsonify({
+        "active": data_collection_active,
+        "duration": duration,
+        "start_time": start_time_ms
+    })
 
 @app.route('/status')
 def get_status():
