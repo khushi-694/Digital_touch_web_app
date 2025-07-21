@@ -610,6 +610,7 @@ def get_status():
     })
 
 @app.route('/api/post', methods=['POST'])
+@app.route("/api/post", methods=["POST"])
 def receive_data_from_arduino():
     global test_data, data_collection_active, current_phase
 
@@ -617,36 +618,46 @@ def receive_data_from_arduino():
         return jsonify({"message": "Data collection not active."}), 200
 
     try:
-        json_data = request.get_json()  # Arduino sends a list of TX packets
+        json_data = request.get_json()
 
-        # Ensure it's a list of TX packets
+        # Check if incoming data is a list
         if not isinstance(json_data, list):
-            print(f"Expected list but got: {type(json_data).__name__}")
+            print(f"Expected list of TX packets, but got: {type(json_data).__name__}")
             return jsonify({"message": "Expected a list of TX packets."}), 400
 
+        valid_count = 0
         for packet in json_data:
-            if not all(k in packet for k in ('time', 'tx', 'rx')):
-                print(f"Malformed packet: {packet}")
-                continue  # skip bad packets but don’t crash
-
-            rx_values = packet['rx']
-            if not isinstance(rx_values, list) or len(rx_values) != 7:
-                print(f"Invalid 'rx' format in packet: {packet}")
+            if not isinstance(packet, dict):
+                print(f"Skipping non-dict packet: {packet}")
                 continue
 
-            parsed_data = [packet['time'], packet['tx']] + rx_values
-            test_data['all_data'].append(parsed_data)
+            # Validate required keys
+            if not all(k in packet for k in ("time", "tx", "rx")):
+                print(f"Skipping malformed packet (missing keys): {packet}")
+                continue
+
+            rx_values = packet["rx"]
+            if not isinstance(rx_values, list) or len(rx_values) != 7:
+                print(f"Skipping invalid 'rx' data (not a list of 7): {rx_values}")
+                continue
+
+            # Parse and store the data
+            parsed_data = [packet["time"], packet["tx"]] + rx_values
+            test_data["all_data"].append(parsed_data)
 
             if current_phase == "UNTOUCH":
-                test_data['untouch_data'].append(parsed_data)
+                test_data["untouch_data"].append(parsed_data)
             elif current_phase == "TOUCH":
-                test_data['touch_data'].append(parsed_data)
+                test_data["touch_data"].append(parsed_data)
 
-        return jsonify({"message": "Batch data received successfully."}), 200
+            valid_count += 1
+
+        return jsonify({"message": f"Received {valid_count} valid TX packets."}), 200
 
     except Exception as e:
-        print(f"Error receiving batch data: {e}")
+        print(f"Error processing batch data: {e}")
         return jsonify({"message": f"Server error: {str(e)}"}), 500
+
 
 
 def run_test_manager():
