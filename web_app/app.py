@@ -592,14 +592,24 @@ def stop():
 def arduino_status():
     global data_collection_active, test_start_time, current_test_config
 
-    duration = int(current_test_config.get("duration", 0)) * 1000  # in ms
+    # Get duration of one cycle (touch or untouch) in milliseconds
+    duration_per_phase_ms = int(current_test_config.get("duration", 0)) * 1000  
+
+    # Get number of full touch-untouch cycles
+    num_cycles = int(current_test_config.get("num_cycles", 0))
+
+    # Total test duration = 2 * num_cycles * duration_per_phase
+    total_duration_ms = 2 * num_cycles * duration_per_phase_ms
+
+    # Start time in milliseconds
     start_time_ms = int(test_start_time * 1000) if test_start_time else None
 
     return jsonify({
         "active": data_collection_active,
-        "duration": duration,
+        "duration": total_duration_ms,
         "start_time": start_time_ms
     })
+
 
 @app.route('/status')
 def get_status():
