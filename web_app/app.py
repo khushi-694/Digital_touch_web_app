@@ -596,7 +596,7 @@ def arduino_status():
     duration_per_phase_ms = int(current_test_config.get("duration", 0)) * 1000  
 
     # Get number of full touch-untouch cycles
-    num_cycles = int(current_test_config.get("num_cycles", 0))
+    num_cycles = int(current_test_config.get("cycles", 0))
 
     # Total test duration = 2 * num_cycles * duration_per_phase
     total_duration_ms = 2 * num_cycles * duration_per_phase_ms
