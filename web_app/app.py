@@ -636,9 +636,7 @@ def get_status():
         "classification_type": classification_type,
         "elapsed_time": int(elapsed_time)
     })
-
 @app.route('/api/post', methods=['POST'])
-@app.route("/api/post", methods=["POST"])
 def receive_data_from_arduino():
     global test_data, data_collection_active, current_phase
 
@@ -648,18 +646,16 @@ def receive_data_from_arduino():
     try:
         json_data = request.get_json()
 
-        # Check if incoming data is a list
         if not isinstance(json_data, list):
             print(f"Expected list of TX packets, but got: {type(json_data).__name__}")
             return jsonify({"message": "Expected a list of TX packets."}), 400
 
         valid_count = 0
-        for packet in json_data:
+        for packet in json_data: # This loop processes each TX scan received in the batch
             if not isinstance(packet, dict):
                 print(f"Skipping non-dict packet: {packet}")
                 continue
 
-            # Validate required keys
             if not all(k in packet for k in ("time", "tx", "rx")):
                 print(f"Skipping malformed packet (missing keys): {packet}")
                 continue
@@ -669,7 +665,6 @@ def receive_data_from_arduino():
                 print(f"Skipping invalid 'rx' data (not a list of 7): {rx_values}")
                 continue
 
-            # Parse and store the data
             parsed_data = [packet["time"], packet["tx"]] + rx_values
             test_data["all_data"].append(parsed_data)
 
